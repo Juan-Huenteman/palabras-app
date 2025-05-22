@@ -20,7 +20,7 @@ interface AppContextProps {
   palabras: string[];
   palabraActual: string;
   silabasPalabraActual: string[];
-  cargarPalabras: (nivel: 'facil' | 'medio' | 'dificil') => Promise<void>;
+  cargarPalabras: (nivel: 'facil' | 'medio' | 'dificil', letraInicial?: string) => Promise<void>;
   siguientePalabra: () => void;
   
   // Reconocimiento de voz
@@ -42,6 +42,8 @@ interface AppContextProps {
   cambiarUsarMayusculas: (valor: boolean) => void;
   silabaActual: number;
   setSilabaActual: (index: number) => void;
+  letraInicial: string;
+  setLetraInicial: (letra: string) => void;
   
   // Verificación y retroalimentación
   verificarPalabraHablada: () => Promise<void>;
@@ -68,6 +70,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [indicePalabraActual, setIndicePalabraActual] = useState<number>(0);
   const [silabasPalabraActual, setSilabasPalabraActual] = useState<string[]>([]);
   const [silabaActual, setSilabaActual] = useState<number>(-1);
+  const [letraInicial, setLetraInicial] = useState<string>('');
   
   // Obtener la palabra actual usando useMemo para evitar problemas de inicialización
   const palabraActual = useMemo(() => palabras[indicePalabraActual] || '', [palabras, indicePalabraActual]);
@@ -177,14 +180,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Cargar palabras según el nivel
-  const cargarPalabras = async (nivel: 'facil' | 'medio' | 'dificil' = 'facil') => {
+  const cargarPalabras = async (nivel: 'facil' | 'medio' | 'dificil' = 'facil', letraInicial: string = '') => {
     if (!geminiAPI) return;
     
     setCargando(true);
     setError(null);
     
     try {
-      const nuevasPalabras = await generarPalabras(geminiAPI, nivel, 10);
+      const nuevasPalabras = await generarPalabras(geminiAPI, nivel, 10, letraInicial);
       setPalabras(nuevasPalabras);
       setIndicePalabraActual(0);
       
@@ -199,16 +202,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setSilabaActual(-1); // No hay sílaba seleccionada al inicio
       }
     } catch (error) {
-      setError('Error al cargar palabras');
-      // Usar palabras por defecto
-      const palabrasDefecto = ['ma', 'pa', 'si', 'no', 'sol', 'pan', 'oso', 'casa'];
-      setPalabras(palabrasDefecto);
-      setIndicePalabraActual(0);
-      
-      if (palabrasDefecto.length > 0) {
-        const silabas = dividirEnSilabas(palabrasDefecto[0]);
-        setSilabasPalabraActual(silabas);
-      }
+      console.error('Error al cargar palabras:', error);
+      setError('Hubo un problema al cargar las palabras. Inténtalo de nuevo.');
     } finally {
       setCargando(false);
     }
@@ -377,7 +372,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         detenerReconocimiento,
         hablarTexto,
         hablarSilaba,
-        estaHablando: false,
+        estaHablando,
         detenerVoz,
         generoVoz,
         cambiarGeneroVoz,
@@ -385,6 +380,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         cambiarUsarMayusculas,
         silabaActual,
         setSilabaActual,
+        letraInicial,
+        setLetraInicial,
         verificarPalabraHablada,
         retroalimentacion,
         respuestaCorrecta

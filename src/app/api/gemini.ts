@@ -58,7 +58,8 @@ export const verificarPronunciacion = async (
 export const generarPalabras = async (
   genAI: GoogleGenerativeAI,
   nivel: 'facil' | 'medio' | 'dificil' = 'facil',
-  cantidad: number = 10
+  cantidad: number = 10,
+  letraInicial: string = ''
 ): Promise<string[]> => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -76,9 +77,19 @@ export const generarPalabras = async (
         break;
     }
     
-    const prompt = `
+    let prompt = `
       Genera una lista de ${cantidad} palabras en español para que una niña de 4 años practique lectura.
       Las palabras deben ser ${complejidad}
+    `;
+    
+    // Agregar restricción de letra inicial si se especificó
+    if (letraInicial && letraInicial.length > 0) {
+      prompt += `
+      IMPORTANTE: Todas las palabras DEBEN comenzar con la letra "${letraInicial.toLowerCase()}".
+      `;
+    }
+    
+    prompt += `
       Responde solamente con las palabras separadas por comas, sin ningún texto adicional.
     `;
     
@@ -86,11 +97,62 @@ export const generarPalabras = async (
     const response = result.response.text();
     
     // Limpiamos y dividimos las palabras
-    return response
+    let palabras = response
       .replace(/[^\w,áéíóúñÁÉÍÓÚÑ]/g, '')
       .split(',')
       .map(palabra => palabra.trim())
       .filter(palabra => palabra.length > 0);
+      
+    // Filtro adicional por si el modelo no respeta la restricción de letra inicial
+    if (letraInicial && letraInicial.length > 0) {
+      palabras = palabras.filter(palabra => 
+        palabra.toLowerCase().startsWith(letraInicial.toLowerCase())
+      );
+      
+      // Si no tenemos suficientes palabras, agregamos algunas por defecto con esa letra
+      if (palabras.length < 3) {
+        const palabrasDefecto: Record<string, string[]> = {
+          'a': ['ala', 'agua', 'amor', 'ave', 'año'],
+          'b': ['boca', 'beso', 'bota', 'barco', 'bebé'],
+          'c': ['casa', 'cola', 'cama', 'calle', 'cuna'],
+          'd': ['dedo', 'día', 'dado', 'dama', 'dulce'],
+          'e': ['eso', 'era', 'eje', 'eco', 'elfo'],
+          'f': ['foca', 'feo', 'foto', 'fila', 'flor'],
+          'g': ['gato', 'gol', 'goma', 'gris', 'grande'],
+          'h': ['hola', 'hora', 'hijo', 'hada', 'huevo'],
+          'i': ['isla', 'idea', 'igual', 'ir', 'imán'],
+          'j': ['jugo', 'jaula', 'jefe', 'jamón', 'jugar'],
+          'k': ['kilo', 'kiwi', 'koala', 'karate', 'kétchup'],
+          'l': ['luna', 'loco', 'lápiz', 'lazo', 'leer'],
+          'm': ['mesa', 'mamá', 'mar', 'mano', 'miel'],
+          'n': ['nube', 'nido', 'nadar', 'noche', 'nariz'],
+          'o': ['oso', 'ojo', 'oro', 'ocho', 'oval'],
+          'p': ['papá', 'pato', 'pelo', 'pie', 'pan'],
+          'q': ['queso', 'quince', 'querer', 'quemar', 'quizás'],
+          'r': ['rojo', 'rana', 'reloj', 'risa', 'rata'],
+          's': ['sol', 'sopa', 'seis', 'sapo', 'silla'],
+          't': ['taza', 'toro', 'tres', 'tela', 'tío'],
+          'u': ['uva', 'uno', 'usar', 'unir', 'útil'],
+          'v': ['vaca', 'ver', 'vaso', 'viaje', 'volar'],
+          'w': ['web', 'wafle', 'wifi', 'western', 'whisky'],
+          'x': ['xilófono', 'rayos x', 'xi', 'xenón'],
+          'y': ['yo', 'ya', 'yema', 'yuyo', 'yoga'],
+          'z': ['zapato', 'zero', 'zoo', 'zorro', 'zumo']
+        };
+        
+        const letra = letraInicial.toLowerCase();
+        if (palabrasDefecto[letra]) {
+          palabras = palabras.concat(palabrasDefecto[letra]);
+        }
+      }
+    }
+    
+    // Si después de todo no tenemos palabras, usamos algunas por defecto
+    if (palabras.length === 0) {
+      palabras = ['ma', 'pa', 'si', 'no', 'sol', 'pan', 'oso', 'casa'];
+    }
+    
+    return palabras;
   } catch (error) {
     console.error('Error al generar palabras:', error);
     // Devolvemos algunas palabras por defecto en caso de error

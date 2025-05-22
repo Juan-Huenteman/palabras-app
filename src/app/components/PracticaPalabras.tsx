@@ -28,7 +28,9 @@ const PracticaPalabras: React.FC = () => {
     usarMayusculas,
     cambiarUsarMayusculas,
     silabaActual,
-    setSilabaActual
+    setSilabaActual,
+    letraInicial,
+    setLetraInicial
   } = useAppContext();
 
   const [nivelSeleccionado, setNivelSeleccionado] = useState<NivelDificultad>('facil');
@@ -42,10 +44,10 @@ const PracticaPalabras: React.FC = () => {
   // Cargar palabras inicialmente
   useEffect(() => {
     if (!palabrasCargadas && palabras.length === 0) {
-      cargarPalabras(nivelSeleccionado);
+      cargarPalabras(nivelSeleccionado, letraInicial);
       setPalabrasCargadas(true);
     }
-  }, [palabrasCargadas, palabras.length, cargarPalabras, nivelSeleccionado]);
+  }, [palabrasCargadas, palabras.length, cargarPalabras, nivelSeleccionado, letraInicial]);
 
   // Leer automáticamente la palabra cuando cambia
   useEffect(() => {
@@ -73,7 +75,19 @@ const PracticaPalabras: React.FC = () => {
   // Cambiar nivel de dificultad
   const cambiarNivel = (nivel: NivelDificultad) => {
     setNivelSeleccionado(nivel);
-    cargarPalabras(nivel);
+    cargarPalabras(nivel, letraInicial);
+  };
+
+  // Manejar el cambio de letra inicial
+  const handleLetraInicialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value.trim();
+    const letra = valor.length > 0 ? valor[0] : '';
+    setLetraInicial(letra);
+  };
+  
+  // Aplicar filtro por letra inicial
+  const aplicarFiltroLetra = () => {
+    cargarPalabras(nivelSeleccionado, letraInicial);
   };
 
   // Repetir pronunciación de la palabra actual
@@ -259,6 +273,50 @@ const PracticaPalabras: React.FC = () => {
               Difícil
             </button>
           </div>
+        </div>
+        
+        {/* Filtro por letra inicial */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filtrar por letra inicial:
+          </label>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              maxLength={1}
+              value={letraInicial}
+              onChange={handleLetraInicialChange}
+              className="px-3 py-2 border border-gray-300 rounded-md w-16 text-center text-lg font-bold"
+              placeholder="A"
+            />
+            <button
+              onClick={aplicarFiltroLetra}
+              disabled={cargando}
+              className={`px-4 py-2 rounded-md ${
+                cargando
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                  : 'bg-blue-500 text-white hover:bg-blue-600'
+              }`}
+            >
+              Aplicar
+            </button>
+            {letraInicial && (
+              <button
+                onClick={() => {
+                  setLetraInicial('');
+                  cargarPalabras(nivelSeleccionado, '');
+                }}
+                className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+          {letraInicial && (
+            <p className="text-sm text-gray-600 mt-1">
+              Mostrando palabras que empiezan con "{letraInicial.toUpperCase()}"
+            </p>
+          )}
         </div>
         
         {/* Opciones de visualización */}
