@@ -19,10 +19,15 @@ export class ReconocimientoVoz implements ReconocimientoVozServicio {
   private _error: string | null = null;
   private onResultadoCallback: ((texto: string) => void) | null = null;
   private onEstadoChangeCallback: ((estado: EstadoReconocimiento) => void) | null = null;
+  private timeoutId: number | null = null;
+  private isMovilDevice: boolean = false;
 
   constructor() {
     // Verificar si el navegador soporta reconocimiento de voz
     if (typeof window !== 'undefined') {
+      // Detectar si es un dispositivo móvil
+      this.isMovilDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         this.reconocimiento = new SpeechRecognition();
@@ -39,38 +44,99 @@ export class ReconocimientoVoz implements ReconocimientoVozServicio {
 
     this.reconocimiento.lang = 'es-ES';
     this.reconocimiento.continuous = false;
-    this.reconocimiento.interimResults = false;
+    this.reconocimiento.interimResults = true; // Permitir resultados intermedios para mejor respuesta en móviles
     this.reconocimiento.maxAlternatives = 1;
+
+    // En móviles, usar parámetros optimizados
+    if (this.isMovilDevice) {
+      console.log('Configurando para dispositivo móvil');
+    }
 
     this.reconocimiento.onstart = () => {
       this._estado = 'escuchando';
       this._resultado = '';
       this._error = null;
       this.onEstadoChangeCallback?.(this._estado);
+      
+      // Establecer un timeout más largo para dispositivos móviles
+      const timeoutDuration = this.isMovilDevice ? 10000 : 7000;
+      
+      // Crear un timeout para asegurarse de que el reconocimiento no se queda atascado
+      this.timeoutId = setTimeout(() => {
+        console.log('Timeout de reconocimiento alcanzado');
+        if (this._estado === 'escuchando') {
+          this.detener();
+          this._resultado = ''; // Limpiar resultado si no se detectó nada
+          this._estado = 'inactivo';
+          this.onEstadoChangeCallback?.(this._estado);
+        }
+      }, timeoutDuration);
     };
 
     this.reconocimiento.onresult = (event) => {
+      // Procesar resultados intermedios o finales
+      const isFinal = event.results[0].isFinal;
       const resultado = event.results[0][0].transcript;
+      
       this._resultado = resultado;
-      this.onResultadoCallback?.(resultado);
+      
+      // Si es un resultado final o estamos en móvil con un resultado suficiente
+      if (isFinal || (this.isMovilDevice && resultado.length > 2)) {
+        // Limpiar el timeout ya que tenemos un resultado
+        if (this.timeoutId) {
+          clearTimeout(this.timeoutId);
+          this.timeoutId = null;
+        }
+        
+        // Notificar del resultado
+        this.onResultadoCallback?.(resultado);
+        
+        // En móviles, detener explícitamente después de obtener un resultado
+        if (this.isMovilDevice) {
+          this.detener();
+        }
+      }
     };
 
     this.reconocimiento.onerror = (event) => {
-      this._error = `Error: ${event.error}`;
+      // Limpiar timeout si existe
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+      
+      // En móviles, algunos errores son esperados y no deberían interrumpir la experiencia
+      if (this.isMovilDevice && (event.error === 'no-speech' || event.error === 'aborted')) {
+        console.log(`Error móvil ignorado: ${event.error}`);
+        this._estado = 'inactivo';
+        this.onEstadoChangeCallback?.(this._estado);
+        return;
+      }
+      
+      this._error = `Error de reconocimiento: ${event.error}`;
+      console.error(this._error);
       this._estado = 'error';
       this.onEstadoChangeCallback?.(this._estado);
     };
 
     this.reconocimiento.onend = () => {
+      // Limpiar timeout si existe
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+      
       if (this._estado !== 'error') {
-        this._estado = 'procesando';
+        this._estado = this._resultado ? 'procesando' : 'inactivo';
         this.onEstadoChangeCallback?.(this._estado);
         
         // Después de procesar, volvemos a inactivo
-        setTimeout(() => {
-          this._estado = 'inactivo';
-          this.onEstadoChangeCallback?.(this._estado);
-        }, 500);
+        if (this._estado === 'procesando') {
+          setTimeout(() => {
+            this._estado = 'inactivo';
+            this.onEstadoChangeCallback?.(this._estado);
+          }, 500);
+        }
       }
     };
   }
@@ -87,8 +153,25 @@ export class ReconocimientoVoz implements ReconocimientoVozServicio {
       // Intentar solicitar permiso explícitamente para el micrófono
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         try {
-          await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           console.log('Permiso de micrófono concedido');
+          
+          // Verificar que el micrófono está recibiendo datos (solo para diagnóstico)
+          if (this.isMovilDevice) {
+            try {
+              const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const source = audioCtx.createMediaStreamSource(stream);
+              const analyser = audioCtx.createAnalyser();
+              source.connect(analyser);
+              
+              // No conectamos al destino para evitar retroalimentación
+              console.log('Stream de audio verificado correctamente');
+            } catch (audioError) {
+              console.warn('No se pudo analizar el stream de audio:', audioError);
+              // Continuamos de todos modos
+            }
+          }
+          
         } catch (permissionError) {
           console.error('Error al solicitar permiso del micrófono:', permissionError);
           this._error = `Error de permisos: ${permissionError}`;
@@ -98,8 +181,15 @@ export class ReconocimientoVoz implements ReconocimientoVozServicio {
         }
       }
       
+      // En dispositivos móviles, reiniciar variables antes de iniciar
+      if (this.isMovilDevice) {
+        this._resultado = '';
+        this._error = null;
+      }
+      
       // Iniciar reconocimiento después de verificar permisos
       this.reconocimiento.start();
+      console.log('Reconocimiento iniciado');
     } catch (error) {
       this._error = `Error al iniciar reconocimiento: ${error}`;
       this._estado = 'error';
@@ -109,8 +199,22 @@ export class ReconocimientoVoz implements ReconocimientoVozServicio {
   }
 
   public detener(): void {
-    if (this.reconocimiento && this._estado === 'escuchando') {
-      this.reconocimiento.stop();
+    // Limpiar timeout si existe
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+    
+    if (this.reconocimiento) {
+      try {
+        if (this._estado === 'escuchando') {
+          this.reconocimiento.stop();
+          console.log('Reconocimiento detenido manualmente');
+        }
+      } catch (error) {
+        console.error('Error al detener reconocimiento:', error);
+        // No actualizamos el estado aquí para evitar confusión
+      }
     }
   }
 

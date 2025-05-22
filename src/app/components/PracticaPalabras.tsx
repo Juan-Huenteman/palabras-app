@@ -214,6 +214,12 @@ const PracticaPalabras: React.FC = () => {
     }
   };
 
+  // Detectar si es un dispositivo móvil
+  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // Estado para ver el diagnóstico
+  const [mostrarDiagnostico, setMostrarDiagnostico] = useState<boolean>(false);
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-purple-700 mb-4">
@@ -461,12 +467,6 @@ const PracticaPalabras: React.FC = () => {
       </div>
 
       {/* Resultado del reconocimiento */}
-      {resultadoReconocimiento && (
-        <div className="mb-6 p-3 bg-gray-100 rounded-md">
-          <p className="text-sm text-gray-600 mb-1">Lo que dijiste:</p>
-          <p className="text-lg font-medium">{resultadoReconocimiento}</p>
-        </div>
-      )}
 
       {/* Retroalimentación */}
       {retroalimentacion && (
@@ -494,6 +494,44 @@ const PracticaPalabras: React.FC = () => {
       {error && (
         <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Diagnóstico para dispositivos móviles */}
+      {isMobile && (
+        <div className="mt-4 mb-4">
+          <button 
+            onClick={() => setMostrarDiagnostico(!mostrarDiagnostico)}
+            className="text-blue-500 text-sm underline mb-2"
+          >
+            {mostrarDiagnostico ? "Ocultar diagnóstico" : "Mostrar diagnóstico (ayuda móvil)"}
+          </button>
+          
+          {mostrarDiagnostico && (
+            <div className="p-3 bg-blue-50 rounded-md text-sm">
+              <h4 className="font-bold mb-1">Diagnóstico del micrófono:</h4>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Estado del reconocimiento: <span className="font-mono">{estadoReconocimiento}</span></li>
+                <li>Está hablando: <span className="font-mono">{estaHablando ? "Sí" : "No"}</span></li>
+                <li>Texto reconocido: <span className="font-mono">{resultadoReconocimiento || "(ninguno)"}</span></li>
+                <li>Dispositivo móvil: <span className="font-mono">Sí</span></li>
+              </ul>
+              <p className="mt-3 text-xs">Prueba a usar un navegador diferente en tu dispositivo. Chrome suele funcionar mejor.</p>
+              <p className="mt-1 text-xs">Verifica que has dado permisos al micrófono en la configuración del navegador.</p>
+              <button
+                onClick={() => {
+                  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                      .then(() => alert('¡Permiso de micrófono concedido correctamente!'))
+                      .catch((err) => alert(`Error de permisos: ${err.message}`));
+                  }
+                }}
+                className="mt-2 bg-blue-500 text-white px-3 py-1 rounded text-xs"
+              >
+                Verificar permisos
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
