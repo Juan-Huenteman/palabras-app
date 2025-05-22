@@ -372,7 +372,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         detenerReconocimiento,
         hablarTexto,
         hablarSilaba,
-        estaHablando,
+        estaHablando: false,
         detenerVoz,
         generoVoz,
         cambiarGeneroVoz,
