@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ¡Aprendamos a Leer!
 
-## Getting Started
+Una aplicación web desarrollada con Next.js para ayudar a niños de 4 años a aprender a leer. La aplicación utiliza la API de Gemini para reconocimiento de voz y la Web Speech API para síntesis de voz.
 
-First, run the development server:
+## Características
+
+- 🎤 Reconocimiento de voz para capturar lo que dice el niño
+- 🔊 Síntesis de voz para pronunciar palabras
+- 🧠 Integración con la API de Gemini para verificar la pronunciación
+- 📚 Diferentes niveles de dificultad (sílabas, palabras simples, palabras más complejas)
+- 👍 Retroalimentación amigable y comprensiva
+
+## Requisitos previos
+
+- Node.js 18 o superior
+- Una clave API de Gemini (se puede obtener en [Google AI Studio](https://ai.google.dev/))
+
+## Instalación
+
+1. Clona este repositorio o descárgalo
+2. Navega al directorio del proyecto
+3. Instala las dependencias:
+
+```bash
+cd palabras-app
+npm install
+```
+
+## Configuración
+
+La aplicación requiere una clave API de Gemini para funcionar. Tienes dos opciones para configurarla:
+
+### Opción 1: Usar un archivo .env.local (recomendado)
+
+1. Crea un archivo `.env.local` en la raíz del proyecto
+2. Añade tu clave API en este formato:
+```
+NEXT_PUBLIC_GEMINI_API_KEY=tu_clave_api_aquí
+```
+3. Reinicia la aplicación si ya estaba en ejecución
+
+### Opción 2: Ingresar la clave manualmente
+
+Cuando ejecutes la aplicación, se te pedirá que ingreses esta clave antes de poder usar todas las funcionalidades.
+
+## Uso
+
+1. Inicia la aplicación en modo desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Abre [http://localhost:3000](http://localhost:3000) en tu navegador
+3. Si no has configurado la clave API en el archivo .env.local, ingrésala cuando se te solicite
+4. Selecciona un nivel de dificultad (Fácil, Medio, Difícil)
+5. Se mostrará una palabra que también será pronunciada automáticamente
+6. El niño puede presionar el botón "Escuchar palabra" para volver a escuchar la pronunciación
+7. Para practicar, el niño debe presionar el botón del micrófono y leer la palabra en voz alta
+8. La aplicación verificará la pronunciación y proporcionará retroalimentación
+9. Continúa con más palabras usando el botón "Siguiente Palabra"
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tecnologías utilizadas
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- [Next.js](https://nextjs.org/) - Framework de React
+- [Tailwind CSS](https://tailwindcss.com/) - Framework CSS
+- [API de Gemini](https://ai.google.dev/) - IA para verificación de pronunciación
+- [Web Speech API](https://developer.mozilla.org/es/docs/Web/API/Web_Speech_API) - Para reconocimiento y síntesis de voz
 
-## Learn More
+## Consideraciones importantes
 
-To learn more about Next.js, take a look at the following resources:
+- La aplicación requiere permisos de micrófono para funcionar
+- Funciona mejor en navegadores modernos como Chrome, Edge o Firefox
+- La síntesis de voz funciona mejor si hay voces en español instaladas en el sistema
+- Se requiere una conexión a internet para comunicarse con la API de Gemini
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Licencia
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Este proyecto está bajo la Licencia MIT - consulta el archivo LICENSE para más detalles.
 
-## Deploy on Vercel
+## Contacto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Si tienes preguntas o sugerencias, no dudes en contactarnos.
